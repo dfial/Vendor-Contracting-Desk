@@ -1,0 +1,1132 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Vendor Contracting Desk</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<meta name="description" content="A working sample by Damian Fiala: intake triage for new purchases, a vendor playbook that also ships as a Claude skill, and a 12-month horizon of renewals and notice windows.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;700&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap">
+<style>
+/* Layout: an operations console. Masthead with the pitch, a tab bar, one working surface per tab; dates and money set in mono. */
+:root {
+  --paper: #f3f5f7;
+  --surface: #ffffff;
+  --sunken: #edf0f3;
+  --ink: #16202a;
+  --muted: #566170;
+  --faint: #7f8996;
+  --line: #d8dde3;
+  --accent: #2346b8;
+  --accent-soft: #e6ebf9;
+  --act: #b42318;
+  --act-soft: #fcebe8;
+  --prep: #965600;
+  --prep-soft: #fcf0da;
+  --watch: #33587c;
+  --watch-soft: #e5edf5;
+  --closed: #474d56;
+  --closed-soft: #e6e8eb;
+  --ok: #1d7646;
+  --ok-soft: #e1f2e8;
+  --hatch: rgba(22, 32, 42, 0.22);
+  --font-display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --font-body: "IBM Plex Sans", system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --font-mono: "IBM Plex Mono", ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 10px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #0e1318; --surface: #151c23; --sunken: #1b232c; --ink: #e5eaf0; --muted: #9ba6b3; --faint: #74808d;
+    --line: #2a3541; --accent: #8aa6ff; --accent-soft: #1d2a4c; --act: #ff8d80; --act-soft: #3d1f1b;
+    --prep: #f0b45c; --prep-soft: #372911; --watch: #9fbddc; --watch-soft: #1c2936; --closed: #bcc2ca;
+    --closed-soft: #272d34; --ok: #72d39e; --ok-soft: #143022; --hatch: rgba(229, 234, 240, 0.26);
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #0e1318; --surface: #151c23; --sunken: #1b232c; --ink: #e5eaf0; --muted: #9ba6b3; --faint: #74808d;
+  --line: #2a3541; --accent: #8aa6ff; --accent-soft: #1d2a4c; --act: #ff8d80; --act-soft: #3d1f1b;
+  --prep: #f0b45c; --prep-soft: #372911; --watch: #9fbddc; --watch-soft: #1c2936; --closed: #bcc2ca;
+  --closed-soft: #272d34; --ok: #72d39e; --ok-soft: #143022; --hatch: rgba(229, 234, 240, 0.26);
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font: 400 15px/1.55 var(--font-body);
+  -webkit-font-smoothing: antialiased;
+}
+[hidden] { display: none !important; }
+a { color: var(--accent); text-underline-offset: 2px; }
+:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.wrap {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding-left: max(16px, env(safe-area-inset-left, 0px));
+  padding-right: max(16px, env(safe-area-inset-right, 0px));
+  padding-block: 32px 48px;
+}
+h1, h2, h3, h4 { font-family: var(--font-display); margin: 0; text-wrap: balance; letter-spacing: -0.005em; }
+p { margin: 0; }
+.eyebrow { font: 600 11.5px/1.3 var(--font-body); letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.muted { color: var(--muted); }
+.mono { font-family: var(--font-mono); font-variant-numeric: tabular-nums; }
+
+/* Masthead */
+.masthead { display: grid; gap: 10px; margin-bottom: 22px; }
+.masthead h1 { font-size: clamp(28px, 4.2vw, 40px); font-weight: 700; line-height: 1.1; }
+.lede { max-width: 70ch; font-size: 16.5px; }
+.byline { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; color: var(--muted); font-size: 13.5px; }
+.sample { justify-self: start; display: inline-flex; align-items: center; gap: 6px; font: 500 12px/1 var(--font-mono); color: var(--prep); background: var(--prep-soft); border-radius: 999px; padding: 5px 10px; }
+
+/* Tabs */
+.tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); margin-bottom: 20px; overflow-x: auto; scrollbar-width: none; }
+.tabs::-webkit-scrollbar { display: none; }
+.tab {
+  appearance: none; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
+  padding: 10px 14px; font: 600 14.5px/1.2 var(--font-body); color: var(--muted); cursor: pointer; white-space: nowrap;
+}
+.tab:hover { color: var(--ink); }
+.tab[aria-selected="true"] { color: var(--ink); border-bottom-color: var(--accent); }
+
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius); min-width: 0; }
+.panel-head { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px 16px; padding: 14px 16px 8px; }
+.panel-head h2 { font-size: 17px; }
+.btn {
+  appearance: none; border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px;
+  padding: 7px 12px; font: 600 13px/1.2 var(--font-body); cursor: pointer;
+}
+.btn:hover { border-color: var(--accent); color: var(--accent); }
+.btn.primary { background: var(--accent); border-color: var(--accent); color: var(--surface); }
+.btn.primary:hover { filter: brightness(1.08); color: var(--surface); }
+
+/* Status tokens */
+.st-act { --m: var(--act); --s: var(--act-soft); }
+.st-prep { --m: var(--prep); --s: var(--prep-soft); }
+.st-watch { --m: var(--watch); --s: var(--watch-soft); }
+.st-closed { --m: var(--closed); --s: var(--closed-soft); }
+.chip {
+  display: inline-flex; align-items: center; gap: 6px; padding: 4px 9px; border-radius: 999px;
+  font: 600 12px/1.25 var(--font-body); color: var(--m, var(--ink)); background: var(--s, var(--sunken)); white-space: nowrap;
+}
+.chip .d { font: 500 12px/1 var(--font-mono); }
+.dot { width: 8px; height: 8px; border-radius: 50%; background: var(--m, currentColor); flex: none; }
+
+/* KPI strip */
+.kpis { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 12px; margin-bottom: 16px; }
+.kpi { padding: 13px 16px 14px; display: grid; gap: 3px; align-content: start; }
+.kpi .label { display: flex; align-items: center; gap: 7px; font-size: 13px; font-weight: 500; color: var(--muted); }
+.kpi .num { font: 500 26px/1.15 var(--font-mono); font-variant-numeric: tabular-nums; }
+.kpi .sub { font-size: 13px; color: var(--muted); }
+
+/* Horizon */
+.horizon-grid { display: grid; grid-template-columns: minmax(0, 1.8fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.filters { display: flex; flex-wrap: wrap; gap: 6px; }
+.filter {
+  appearance: none; display: inline-flex; align-items: center; gap: 6px; border: 1px solid var(--line); background: var(--surface);
+  color: var(--ink); border-radius: 999px; padding: 4px 10px; font: 500 12.5px/1.3 var(--font-body); cursor: pointer;
+}
+.filter .n { font: 500 12px/1 var(--font-mono); color: var(--muted); }
+.filter[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+.filter[aria-pressed="true"] .n { color: inherit; opacity: 0.75; }
+.legend { display: flex; flex-wrap: wrap; gap: 6px 16px; padding: 0 16px 6px; font-size: 12.5px; color: var(--muted); }
+.legend span { display: inline-flex; align-items: center; gap: 6px; }
+.sw { display: inline-block; flex: none; }
+.sw.prep { width: 18px; height: 9px; border-radius: 2px; background: var(--prep-soft); border: 1px solid var(--prep); }
+.sw.lock { width: 18px; height: 9px; border-radius: 2px; background: repeating-linear-gradient(135deg, var(--hatch) 0 2px, transparent 2px 5px); border: 1px solid var(--hatch); }
+.sw.deadline { width: 10px; height: 10px; border-radius: 50%; background: var(--ink); }
+.sw.end { width: 8px; height: 8px; background: var(--ink); transform: rotate(45deg); border-radius: 1px; }
+.sw.end.hollow { background: transparent; border: 1.5px solid var(--ink); }
+
+.timeline { padding: 2px 8px 10px; }
+.tl-grid { display: grid; grid-template-columns: 180px minmax(0, 1fr) 118px; column-gap: 12px; align-items: center; }
+.tl-axis-row { padding: 0 8px; }
+.tl-axis { position: relative; height: 26px; font: 500 11px/1 var(--font-mono); color: var(--faint); }
+.tl-axis .tick { position: absolute; top: 4px; height: 20px; padding-left: 4px; border-left: 1px solid var(--line); white-space: nowrap; }
+.tl-axis .tick.today { color: var(--accent); border-left-color: var(--accent); }
+.tl-row {
+  appearance: none; width: 100%; text-align: left; background: none; border: 0; border-radius: 8px;
+  padding: 7px 8px; color: inherit; font: inherit; cursor: pointer;
+}
+.tl-row:hover { background: var(--sunken); }
+.tl-row[aria-pressed="true"] { background: var(--accent-soft); }
+.tl-label { display: grid; min-width: 0; }
+.tl-vendor { font-weight: 600; font-size: 14px; line-height: 1.3; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl-meta { font-size: 12.5px; color: var(--muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.tl-track { position: relative; height: 24px; border-radius: 5px; background: var(--sunken); }
+.tl-track .g { position: absolute; top: 0; bottom: 0; width: 1px; background: var(--line); }
+.tl-track .today { position: absolute; left: 0; top: -3px; bottom: -3px; width: 2px; background: var(--accent); border-radius: 1px; }
+.seg { position: absolute; top: 6px; height: 12px; border-radius: 3px; }
+.seg.prep { background: var(--s); box-shadow: inset 0 0 0 1px var(--m); opacity: 0.9; }
+.seg.lock { background: repeating-linear-gradient(135deg, var(--hatch) 0 2px, transparent 2px 5px); box-shadow: inset 0 0 0 1px var(--hatch); }
+.seg.runway { top: 11px; height: 2px; background: var(--hatch); border-radius: 1px; }
+.mark { position: absolute; top: 50%; transform: translate(-50%, -50%); }
+.mark.action { width: 12px; height: 12px; border-radius: 50%; background: var(--m); box-shadow: 0 0 0 2px var(--surface); }
+.mark.end { width: 10px; height: 10px; background: var(--ink); border-radius: 2px; transform: translate(-50%, -50%) rotate(45deg); }
+.mark.end.fixed, .mark.end.event { background: var(--surface); box-shadow: inset 0 0 0 2px var(--ink); }
+.tl-status { justify-self: end; }
+.empty-note { padding: 18px 16px; color: var(--muted); font-size: 14px; }
+
+/* Brief */
+.brief { padding: 16px 18px 18px; display: grid; gap: 12px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+.brief h3 { font-size: 21px; line-height: 1.2; }
+.brief .sub { font-size: 13.5px; color: var(--muted); margin-top: 2px; }
+.facts { display: grid; grid-template-columns: max-content minmax(0, 1fr); gap: 5px 14px; margin: 0; font-size: 13.5px; }
+.facts dt { color: var(--muted); }
+.facts dd { margin: 0; }
+.brief h4, .result h4, .how h4 { font: 600 12px/1.3 var(--font-body); letter-spacing: 0.07em; text-transform: uppercase; color: var(--muted); }
+.asks { list-style: none; margin: 0; padding: 0; display: grid; gap: 8px; font-size: 14px; }
+.asks li { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+.pbref {
+  font: 500 11.5px/1 var(--font-mono); color: var(--accent); background: var(--accent-soft); border-radius: 5px;
+  padding: 4px 6px; text-decoration: none; text-align: center; white-space: nowrap;
+}
+a.pbref:hover { text-decoration: underline; }
+.pbref.none { color: var(--muted); background: var(--sunken); }
+.row-actions { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.copy-note { font-size: 12.5px; color: var(--muted); }
+
+/* Concentration */
+.conc { margin-top: 16px; padding: 4px 0 16px; }
+.conc-body { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 18px 28px; padding: 0 16px; }
+.bars { display: grid; gap: 9px; }
+.bar-row { display: grid; grid-template-columns: 128px minmax(0, 1fr) 104px; gap: 10px; align-items: center; font-size: 13.5px; }
+.bar-row .name { white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bar { height: 10px; background: var(--sunken); border-radius: 999px; overflow: hidden; }
+.bar > span { display: block; height: 100%; background: var(--accent); border-radius: 999px; }
+.bar.flagged > span { background: var(--prep); }
+.bar-val { font: 500 12.5px/1 var(--font-mono); color: var(--muted); text-align: right; font-variant-numeric: tabular-nums; }
+.notes { display: grid; gap: 10px; align-content: start; font-size: 14px; }
+.note { display: grid; grid-template-columns: 52px minmax(0, 1fr); gap: 8px; align-items: baseline; }
+
+/* Intake */
+.intake-grid { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr); gap: 16px; align-items: start; }
+.intake-form { padding: 16px 18px 20px; display: grid; gap: 16px; }
+.presets { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; }
+.field { display: grid; gap: 7px; min-width: 0; border: 0; margin: 0; padding: 0; }
+.field > label, .field > legend { font-weight: 600; font-size: 13.5px; padding: 0; margin-bottom: 0; }
+.field > legend { margin-bottom: 7px; }
+.field-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+input[type="text"], select {
+  font: inherit; font-size: 14.5px; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px;
+  background: var(--surface); color: var(--ink); width: 100%; min-width: 0;
+}
+input[type="text"]:focus, select:focus { outline: 2px solid var(--accent); outline-offset: 0; border-color: var(--accent); }
+.options { display: flex; flex-wrap: wrap; gap: 6px; }
+.opt { position: relative; display: inline-flex; }
+.opt input { position: absolute; opacity: 0; width: 1px; height: 1px; }
+.opt span {
+  display: inline-block; padding: 6px 11px; border: 1px solid var(--line); border-radius: 8px; font-size: 13.5px;
+  background: var(--surface); cursor: pointer; line-height: 1.35;
+}
+.opt span:hover { border-color: var(--muted); }
+.opt input:checked + span { border-color: var(--accent); background: var(--accent-soft); box-shadow: inset 0 0 0 1px var(--accent); }
+.opt input[type="checkbox"] + span::before { content: ""; display: inline-block; width: 11px; height: 11px; margin-right: 7px; border: 1.5px solid var(--muted); border-radius: 3px; vertical-align: -1px; }
+.opt input[type="checkbox"]:checked + span::before { background: var(--accent); border-color: var(--accent); }
+.opt input:focus-visible + span { outline: 2px solid var(--accent); outline-offset: 2px; }
+.preset[aria-pressed="true"] { background: var(--ink); border-color: var(--ink); color: var(--surface); }
+
+.result { padding: 16px 18px 18px; display: grid; gap: 14px; position: sticky; top: calc(env(safe-area-inset-top, 0px) + 12px); }
+.ladder { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 4px; }
+.ladder span { font-size: 11.5px; font-weight: 600; text-align: center; padding: 6px 2px; border-radius: 6px; background: var(--sunken); color: var(--faint); }
+.ladder span.on { color: var(--surface); background: var(--m); }
+.lane-self { --m: var(--ok); --s: var(--ok-soft); }
+.lane-standard { --m: var(--watch); --s: var(--watch-soft); }
+.lane-negotiated { --m: var(--prep); --s: var(--prep-soft); }
+.lane-escalate { --m: var(--act); --s: var(--act-soft); }
+.lane { border-radius: 10px; padding: 13px 15px; background: var(--s); display: grid; gap: 4px; }
+.lane-name { font: 700 21px/1.2 var(--font-display); color: var(--m); }
+.lane-sla { font-size: 13.5px; font-weight: 600; color: var(--m); }
+.lane-note { font-size: 14px; color: var(--ink); }
+.bul { margin: 0; padding-left: 18px; display: grid; gap: 4px; font-size: 14px; }
+.reviewers { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; font-size: 14px; }
+.reviewers li { display: grid; grid-template-columns: 130px minmax(0, 1fr); gap: 10px; }
+.reviewers b { font-weight: 600; }
+.checks { display: flex; flex-wrap: wrap; gap: 6px; }
+.checks a { display: inline-flex; gap: 6px; align-items: center; text-decoration: none; color: var(--ink); border: 1px solid var(--line); border-radius: 7px; padding: 4px 8px 4px 4px; font-size: 13px; }
+.checks a:hover { border-color: var(--accent); }
+pre {
+  margin: 0; font: 400 12.5px/1.55 var(--font-mono); background: var(--sunken); border: 1px solid var(--line); border-radius: 8px;
+  padding: 12px 14px; overflow: auto; white-space: pre-wrap; overflow-wrap: break-word; color: var(--ink);
+}
+
+/* Playbook */
+.pb-top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: end; gap: 12px 20px; margin-bottom: 14px; }
+.pb-top p { max-width: 70ch; }
+.pb-list { display: grid; gap: 10px; }
+.pb { padding: 14px 16px 16px; display: grid; gap: 10px; scroll-margin-top: 16px; transition: box-shadow 0.3s ease; }
+.pb.flash { box-shadow: 0 0 0 2px var(--accent); }
+.pb-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px 12px; }
+.pb-head h3 { font-size: 16.5px; }
+.pb-id { font: 600 12.5px/1 var(--font-mono); color: var(--accent); }
+.tags { display: flex; gap: 6px; flex-wrap: wrap; margin-left: auto; }
+.tag { font: 500 11.5px/1 var(--font-mono); color: var(--muted); background: var(--sunken); border-radius: 5px; padding: 4px 6px; }
+.pb-cols { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 14px; }
+.pb-col { display: grid; gap: 4px; align-content: start; font-size: 14px; }
+.pb-col b { font: 600 11.5px/1.3 var(--font-body); letter-spacing: 0.07em; text-transform: uppercase; }
+.pb-col.pref b { color: var(--ok); }
+.pb-col.fall b { color: var(--prep); }
+.pb-col.esc b { color: var(--act); }
+.skill { margin-top: 16px; }
+.skill .panel-head p { font-size: 13.5px; color: var(--muted); max-width: 64ch; }
+.skill pre { margin: 0 16px 16px; max-height: 460px; }
+
+/* How it runs */
+.how { display: grid; gap: 16px; }
+.flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; padding: 16px; }
+.flow .step { padding: 7px 12px; border: 1px solid var(--line); border-radius: 8px; font-weight: 600; font-size: 13.5px; background: var(--surface); }
+.flow .arr { color: var(--faint); font-family: var(--font-mono); }
+.flow .loop { font-size: 13px; color: var(--muted); }
+.how-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+.how-card { padding: 16px 18px; display: grid; gap: 6px; align-content: start; }
+.how-card h3 { font-size: 17px; }
+.how-card p { font-size: 14.5px; max-width: 62ch; }
+.plan { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 12px; }
+.plan .panel { padding: 14px 16px; display: grid; gap: 6px; align-content: start; }
+.plan .when { font: 600 12.5px/1 var(--font-mono); color: var(--accent); }
+.plan p { font-size: 14.5px; }
+
+footer.foot { margin-top: 34px; padding-top: 14px; border-top: 1px solid var(--line); display: flex; flex-wrap: wrap; gap: 6px 18px; color: var(--muted); font-size: 13px; }
+
+@media (max-width: 980px) {
+  .horizon-grid, .intake-grid { grid-template-columns: minmax(0, 1fr); }
+  .brief, .result { position: static; }
+  .conc-body { grid-template-columns: minmax(0, 1fr); }
+}
+@media (max-width: 760px) {
+  .kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .pb-cols, .how-grid, .plan { grid-template-columns: minmax(0, 1fr); }
+  .tags { margin-left: 0; }
+}
+@media (max-width: 640px) {
+  .tl-grid { grid-template-columns: minmax(0, 1fr) auto; row-gap: 6px; }
+  .tl-row .tl-label { grid-column: 1; grid-row: 1; }
+  .tl-row .tl-status { grid-column: 2; grid-row: 1; }
+  .tl-row .tl-track { grid-column: 1 / -1; grid-row: 2; }
+  .tl-axis-row .spacer { display: none; }
+  .tl-axis-row .tl-axis { grid-column: 1 / -1; }
+  .tl-axis .tick.minor { display: none; }
+  .field-row { grid-template-columns: minmax(0, 1fr); }
+  .bar-row { grid-template-columns: 100px minmax(0, 1fr) 92px; }
+  .reviewers li { grid-template-columns: minmax(0, 1fr); gap: 0; }
+  .kpi .num { font-size: 22px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; scroll-behavior: auto !important; }
+}
+</style>
+<style>:root{padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}img{max-width:100%}</style>
+</head>
+<body>
+<div class="wrap">
+  <header class="masthead">
+    <span class="sample">Working sample · fictional vendors and figures</span>
+    <h1>Vendor Contracting Desk</h1>
+    <p class="lede">How I would run vendor contracting at a fast-growing tech company: one front door for every new purchase, one playbook the whole team works from, and a rolling 12-month horizon of renewals and notice windows, so nothing renews unseen.</p>
+    <p class="byline"><span>Damian Fiala</span><span>Built with Claude</span><span>Dates move with today: <time id="today-label" class="mono"></time></span></p>
+  </header>
+
+  <nav class="tabs" role="tablist" aria-label="Sections">
+    <button class="tab" role="tab" id="tab-horizon" aria-controls="view-horizon" data-view="horizon">Renewal horizon</button>
+    <button class="tab" role="tab" id="tab-intake" aria-controls="view-intake" data-view="intake">New request</button>
+    <button class="tab" role="tab" id="tab-playbook" aria-controls="view-playbook" data-view="playbook">Playbook</button>
+    <button class="tab" role="tab" id="tab-how" aria-controls="view-how" data-view="how">How it runs</button>
+  </nav>
+
+  <!-- Renewal horizon -->
+  <section id="view-horizon" role="tabpanel" aria-labelledby="tab-horizon">
+    <div class="kpis" id="kpis"></div>
+    <div class="horizon-grid">
+      <div class="panel">
+        <div class="panel-head">
+          <h2>Next 12 months</h2>
+          <div class="filters" id="filters" role="group" aria-label="Filter by status"></div>
+        </div>
+        <div class="legend" aria-hidden="true">
+          <span><i class="sw prep"></i>Prep window</span>
+          <span><i class="sw deadline"></i>Notice deadline or decision date</span>
+          <span><i class="sw lock"></i>Locked in: renewal can no longer be stopped</span>
+          <span><i class="sw end"></i>Renews</span>
+          <span><i class="sw end hollow"></i>Expires or event date</span>
+        </div>
+        <div class="tl-grid tl-axis-row"><span class="spacer"></span><div class="tl-axis" id="tl-axis"></div><span class="spacer"></span></div>
+        <div class="timeline" id="timeline"></div>
+      </div>
+      <aside class="panel brief" id="brief" aria-live="polite"></aside>
+    </div>
+    <div class="panel conc">
+      <div class="panel-head"><h2>Where the money goes</h2><span class="muted mono" id="conc-total"></span></div>
+      <div class="conc-body">
+        <div class="bars" id="bars"></div>
+        <div class="notes" id="conc-notes"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- New request -->
+  <section id="view-intake" role="tabpanel" aria-labelledby="tab-intake" hidden>
+    <div class="intake-grid">
+      <form class="panel intake-form" id="intake" novalidate>
+        <div class="presets" role="group" aria-label="Example requests">
+          <span class="muted">Examples:</span>
+          <button type="button" class="filter preset" data-preset="notes">AI meeting notes</button>
+          <button type="button" class="filter preset" data-preset="plugin">$3k design plugin</button>
+          <button type="button" class="filter preset" data-preset="analytics">Analytics add-on</button>
+          <button type="button" class="filter preset" data-preset="llm">LLM on support tickets</button>
+        </div>
+        <div class="field">
+          <label for="f-name">What are you buying?</label>
+          <input type="text" id="f-name" autocomplete="off">
+        </div>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-category">Category</label>
+            <select id="f-category">
+              <option value="saas">SaaS tool</option>
+              <option value="ai">AI tool or model API</option>
+              <option value="cloud">Cloud or infrastructure</option>
+              <option value="services">Professional services</option>
+              <option value="hardware">Hardware</option>
+              <option value="events">Events or travel</option>
+              <option value="other">Other</option>
+            </select>
+          </div>
+          <div class="field">
+            <label for="f-value">Annual value</label>
+            <select id="f-value">
+              <option value="lt10">Under $10k</option>
+              <option value="10-50">$10k–50k</option>
+              <option value="50-250">$50k–250k</option>
+              <option value="gt250">Over $250k</option>
+            </select>
+          </div>
+        </div>
+        <fieldset class="field">
+          <legend>Whose terms?</legend>
+          <div class="options">
+            <label class="opt"><input type="radio" name="paper" id="f-paper-click" value="click"><span>Vendor click-through</span></label>
+            <label class="opt"><input type="radio" name="paper" id="f-paper-vendor" value="vendor"><span>Vendor contract, negotiable</span></label>
+            <label class="opt"><input type="radio" name="paper" id="f-paper-ours" value="ours"><span>Our template</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="field">
+          <legend>What data will the vendor handle?</legend>
+          <div class="options">
+            <label class="opt"><input type="radio" name="data" id="f-data-none" value="none"><span>None</span></label>
+            <label class="opt"><input type="radio" name="data" id="f-data-internal" value="internal"><span>Internal business data</span></label>
+            <label class="opt"><input type="radio" name="data" id="f-data-personal" value="personal"><span>Personal data</span></label>
+            <label class="opt"><input type="radio" name="data" id="f-data-customer" value="customer"><span>Customer data</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="field">
+          <legend>AI features</legend>
+          <div class="options">
+            <label class="opt"><input type="radio" name="ai" id="f-ai-none" value="none"><span>None</span></label>
+            <label class="opt"><input type="radio" name="ai" id="f-ai-notrain" value="notrain"><span>Yes, no training on our data</span></label>
+            <label class="opt"><input type="radio" name="ai" id="f-ai-trains" value="trains"><span>Yes, may train on our data or unclear</span></label>
+          </div>
+        </fieldset>
+        <fieldset class="field">
+          <legend>Access to our systems</legend>
+          <div class="options">
+            <label class="opt"><input type="checkbox" id="f-sso"><span>Single sign-on</span></label>
+            <label class="opt"><input type="checkbox" id="f-api"><span>API or integration</span></label>
+            <label class="opt"><input type="checkbox" id="f-prod"><span>Production access</span></label>
+          </div>
+        </fieldset>
+        <div class="field-row">
+          <div class="field">
+            <label for="f-term">Term</label>
+            <select id="f-term">
+              <option value="monthly">Monthly</option>
+              <option value="annual">12 months</option>
+              <option value="multi">Multi-year</option>
+            </select>
+          </div>
+          <fieldset class="field">
+            <legend>Renewal</legend>
+            <div class="options"><label class="opt"><input type="checkbox" id="f-auto"><span>Auto-renews</span></label></div>
+          </fieldset>
+        </div>
+        <fieldset class="field">
+          <legend>Anything unusual?</legend>
+          <div class="options">
+            <label class="opt"><input type="checkbox" id="f-u-exclusive" data-unusual="exclusive"><span>Exclusivity or most-favoured terms</span></label>
+            <label class="opt"><input type="checkbox" id="f-u-indemnity" data-unusual="indemnity"><span>Vendor wants an uncapped indemnity from us</span></label>
+            <label class="opt"><input type="checkbox" id="f-u-law" data-unusual="law"><span>Unusual governing law or forum</span></label>
+            <label class="opt"><input type="checkbox" id="f-u-sanctions" data-unusual="sanctions"><span>Vendor or data in a sanctioned or high-risk country</span></label>
+          </div>
+        </fieldset>
+      </form>
+      <aside class="panel result" id="result" aria-live="polite"></aside>
+    </div>
+  </section>
+
+  <!-- Playbook -->
+  <section id="view-playbook" role="tabpanel" aria-labelledby="tab-playbook" hidden>
+    <div class="pb-top">
+      <p>Ten positions for buy-side SaaS, cloud and AI deals. The same entries drive the intake triage, the asks in each renewal brief and the Claude skill at the bottom of this page, so there is one version of the truth.</p>
+      <div class="filters" id="pb-filters" role="group" aria-label="Filter positions"></div>
+    </div>
+    <div class="pb-list" id="pb-list"></div>
+    <div class="panel skill">
+      <div class="panel-head">
+        <div style="display:grid;gap:4px">
+          <h2>The same playbook as a Claude skill</h2>
+          <p>Generated from the entries above. Saved as a skill, it gives everyone the same first-pass review, with guardrails on confidential data and on checking Claude's output.</p>
+        </div>
+        <div class="row-actions"><button type="button" class="btn" id="copy-skill" data-target="skill-md">Copy SKILL.md</button><span class="copy-note" id="copy-skill-note"></span></div>
+      </div>
+      <pre id="skill-md" tabindex="0" aria-label="SKILL.md contents"></pre>
+    </div>
+  </section>
+
+  <!-- How it runs -->
+  <section id="view-how" role="tabpanel" aria-labelledby="tab-how" hidden>
+    <div class="how">
+      <div class="panel">
+        <div class="panel-head"><h2>The lifecycle this covers</h2></div>
+        <div class="flow" aria-label="Vendor contract lifecycle">
+          <span class="step">Request</span><span class="arr">→</span>
+          <span class="step">Triage</span><span class="arr">→</span>
+          <span class="step">Review and negotiate</span><span class="arr">→</span>
+          <span class="step">Approve and sign</span><span class="arr">→</span>
+          <span class="step">Repository</span><span class="arr">→</span>
+          <span class="step">Renewal horizon</span>
+          <span class="loop">↺ renewals, amendments and exits come back through triage</span>
+        </div>
+      </div>
+      <div class="how-grid">
+        <div class="panel how-card">
+          <h3>One front door</h3>
+          <p>Every purchase starts with the same short intake form in the CLM. The triage rules on the New request tab route it: low-risk buys go through on a checklist the same day, and everything else reaches the right reviewers on day one instead of day ten.</p>
+        </div>
+        <div class="panel how-card">
+          <h3>One playbook, in Claude</h3>
+          <p>Preferred, fallback and escalation positions live in a Claude skill the whole team uses for first-pass reviews and redlines. The AGC approves changes, and escalations and repeated vendor pushback feed the next version.</p>
+        </div>
+        <div class="panel how-card">
+          <h3>A renewal horizon</h3>
+          <p>A weekly digest from the CLM repository goes to FinOps and budget owners with every notice window in the next 90 days. Each renewal comes with a brief and a negotiation target, and spend concentration and overlapping tools are flagged.</p>
+        </div>
+        <div class="panel how-card">
+          <h3>Guardrails for AI</h3>
+          <p>Contract data stays in approved workspaces. Claude drafts, compares and checks; a person makes the call. Every clause Claude quotes is checked against the source document before anything goes to a vendor.</p>
+        </div>
+      </div>
+      <div>
+        <h2 style="font-size:17px;margin-bottom:10px">My first 90 days</h2>
+        <div class="plan">
+          <div class="panel"><span class="when">Days 1–30</span><p>Map how buying works today. List the top vendors by spend and every notice date in the repository, and stop anything about to auto-renew by accident.</p></div>
+          <div class="panel"><span class="when">Days 31–60</span><p>Ship playbook v1 in Claude and the intake triage with FinOps. Open self-serve paths for NDAs and low-risk tools.</p></div>
+          <div class="panel"><span class="when">Days 61–90</span><p>Start the weekly renewal digest and train budget owners. Report the first numbers: cycle time, share of self-serve requests and savings at renewal.</p></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <footer class="foot">
+    <span>Damian Fiala · <a href="https://www.linkedin.com/in/damian-fiala-j-d-ll-m-861a8669/" target="_blank" rel="noopener">LinkedIn</a></span>
+    <span>Vendors, figures and dates are fictional. Positions are illustrative, not legal advice.</span>
+  </footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+
+  // ---------- helpers
+  const HORIZON = 365;
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const addDays = (d, n) => { const x = new Date(d); x.setDate(x.getDate() + n); return x; };
+  const fmt = d => d.toLocaleDateString("en-GB", { day: "numeric", month: "short", year: "numeric" });
+  const money = n => n >= 1e6 ? "$" + (n / 1e6).toFixed(2).replace(/\.?0+$/, "") + "M" : n >= 1000 ? "$" + Math.round(n / 1000) + "k" : "$" + n;
+  const pct = d => Math.max(0, Math.min(d, HORIZON)) / HORIZON * 100;
+  const $ = (s, r = document) => r.querySelector(s);
+  const $$ = (s, r = document) => Array.from(r.querySelectorAll(s));
+  const esc = s => String(s).replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const plural = (n, w) => n + " " + w + (n === 1 ? "" : "s");
+
+  // ---------- the playbook (single source for triage, briefs and the skill file)
+  const PLAYBOOK = [
+    { id: "PB-1", name: "Limitation of liability", tags: ["commercial", "data"],
+      pref: "Mutual cap of at least 12 months' fees. A higher cap (2–3× fees) for data-protection, security and confidentiality breaches. IP indemnity, gross negligence and wilful misconduct uncapped.",
+      fall: "General cap of 12 months' fees, with a data-breach cap of at least 2× fees or a fixed floor for low-fee, high-risk tools.",
+      esc: "Cap below 12 months' fees for a vendor holding personal or customer data; data breaches excluded from liability; a cap that only protects the vendor." },
+    { id: "PB-2", name: "Data use and AI training", tags: ["ai", "data"],
+      pref: "The vendor uses our data only to provide the service. No training or fine-tuning on our inputs or outputs, and no human review except for support or abuse checks.",
+      fall: "Aggregated, de-identified usage metrics allowed. Training opt-out available and switched on at onboarding, confirmed in writing.",
+      esc: "Training on customer or production data; no opt-out; the vendor claims rights in our data beyond running the service." },
+    { id: "PB-3", name: "AI outputs and model changes", tags: ["ai"],
+      pref: "We own the outputs. IP indemnity covers outputs where the vendor offers it. Notice of material model changes, with a right to terminate if quality drops.",
+      fall: "The vendor claims no rights in outputs. 30 days' notice of material changes and release notes for model updates.",
+      esc: "The vendor keeps a licence to outputs beyond running the service; no IP cover for an AI feature used in customer-facing work." },
+    { id: "PB-4", name: "DPA and sub-processors", tags: ["data"],
+      pref: "DPA meeting GDPR Article 28 and US state service-provider terms. Published sub-processor list, 30 days' notice of changes and a right to object. SOC 2 Type II or ISO 27001 report on request.",
+      fall: "The vendor's own DPA if it covers Article 28. Objection right limited to terminating with a pro-rata refund.",
+      esc: "Personal data with no DPA; no notice of new sub-processors; processing locations not disclosed." },
+    { id: "PB-5", name: "International transfers", tags: ["data"],
+      pref: "EU Standard Contractual Clauses (2021) with the UK Addendum, or EU-US Data Privacy Framework certification. Transfer impact assessment on file for higher-risk transfers.",
+      fall: "The vendor's SCCs incorporated by reference; Privacy completes the transfer impact assessment.",
+      esc: "No valid transfer mechanism; government-access risk not addressed for a high-risk destination." },
+    { id: "PB-6", name: "Security", tags: ["data"],
+      pref: "Security exhibit from the Security team's playbook: SOC 2 Type II, encryption in transit and at rest, breach notice within 48 hours, annual penetration-test summary.",
+      fall: "The vendor's security addendum plus a current SOC 2 Type II report; breach notice within 72 hours.",
+      esc: "No independent attestation for a vendor with production or customer data; breach notice slower than 72 hours." },
+    { id: "PB-7", name: "Renewal and notice", tags: ["commercial"],
+      pref: "No auto-renewal, or auto-renewal with 30 days' notice or less and a renewal reminder from the vendor.",
+      fall: "Auto-renewal with up to 60 days' notice; renewal terms of 12 months at most.",
+      esc: "Notice periods over 90 days; multi-year auto-renewal terms." },
+    { id: "PB-8", name: "Price increases", tags: ["commercial"],
+      pref: "Prices fixed for the initial term. Renewal increases capped at 3% or CPI, whichever is lower.",
+      fall: "Cap of 5–7% with 60 days' written notice.",
+      esc: "Uncapped increases; increases during a committed term." },
+    { id: "PB-9", name: "Termination and exit", tags: ["commercial", "data"],
+      pref: "Termination for breach after a 30-day cure period. Data export in a standard format and certified deletion within 30 days. No termination fees.",
+      fall: "Exit assistance at standard rates; export window of 60 days.",
+      esc: "No way to export our data; lock-in beyond 12 months without a matching discount; termination fees." },
+    { id: "PB-10", name: "IP indemnity", tags: ["commercial", "ai"],
+      pref: "The vendor defends and indemnifies third-party IP claims against the service, uncapped or under a higher cap, with the remedy to license, modify or refund.",
+      fall: "Indemnity under a higher cap of at least 2× fees.",
+      esc: "No IP indemnity for core software; broad indemnities from us beyond our own content or misuse." },
+  ];
+  const PB = Object.fromEntries(PLAYBOOK.map(p => [p.id, p]));
+  const pbAnchor = id => "pb-" + id.split("-")[1];
+  const pbLink = id => `<a class="pbref" href="#${pbAnchor(id)}" title="${esc(PB[id].name)}">${id}</a>`;
+
+  // ---------- fictional contract repository (days are offsets from today)
+  const CONTRACTS = [
+    { id: "stratus", vendor: "Stratus Cloud", category: "Cloud infrastructure", owner: "Infrastructure", value: 1240000, recurring: true, renewsIn: 156, autoRenew: true, notice: 90, cap: 3, data: "customer", dpa: true, ai: "none", term: "multi", note: "3-year committed-use agreement" },
+    { id: "pulsewatch", vendor: "Pulsewatch", category: "Observability", owner: "Engineering", value: 186000, recurring: true, renewsIn: 47, autoRenew: true, notice: 30, cap: 7, data: "customer", dpa: true, ai: "notrain", term: "annual", note: "Metrics and APM" },
+    { id: "tracemetric", vendor: "Tracemetric", category: "Observability", owner: "Engineering", value: 64000, recurring: true, renewsIn: 212, autoRenew: true, notice: 60, cap: null, data: "customer", dpa: true, ai: "none", term: "annual", note: "Distributed tracing" },
+    { id: "logharbor", vendor: "LogHarbor", category: "Observability", owner: "Security", value: 92000, recurring: true, renewsIn: 21, autoRenew: true, notice: 45, cap: 5, data: "customer", dpa: true, ai: "none", term: "annual", note: "Log management" },
+    { id: "quillmind", vendor: "Quillmind", category: "AI models", owner: "Product", value: 240000, recurring: true, renewsIn: 98, autoRenew: false, notice: 0, cap: null, data: "customer", dpa: true, ai: "trains", term: "annual", note: "LLM API on a usage commitment" },
+    { id: "beaconguard", vendor: "Beaconguard", category: "Security tooling", owner: "Security", value: 138000, recurring: true, renewsIn: 88, autoRenew: true, notice: 60, cap: 5, data: "internal", dpa: true, ai: "none", term: "annual", note: "SIEM" },
+    { id: "kiteboard", vendor: "Kiteboard", category: "Collaboration", owner: "Operations", value: 28000, recurring: true, renewsIn: 63, autoRenew: true, notice: 30, cap: null, data: "internal", dpa: false, ai: "notrain", term: "annual", note: "Online whiteboards" },
+    { id: "talentloop", vendor: "Talentloop", category: "People and HR", owner: "People", value: 46000, recurring: true, renewsIn: 128, autoRenew: true, notice: 90, cap: 5, data: "personal", dpa: false, ai: "notrain", term: "annual", note: "Applicant tracking" },
+    { id: "paylattice", vendor: "PayLattice", category: "People and HR", owner: "People", value: 310000, recurring: true, renewsIn: 240, autoRenew: true, notice: 90, cap: 4, data: "personal", dpa: true, ai: "none", term: "annual", note: "Global payroll and employer of record" },
+    { id: "helpdock", vendor: "Helpdock", category: "Customer support", owner: "Support", value: 74000, recurring: true, renewsIn: 112, autoRenew: true, notice: 60, cap: null, data: "customer", dpa: true, ai: "notrain", term: "annual", note: "Ticketing with AI replies" },
+    { id: "hubspace", vendor: "Hubspace", category: "Workplace", owner: "People", value: 210000, recurring: true, renewsIn: 300, autoRenew: true, notice: 90, cap: 3, data: "personal", dpa: true, ai: "none", term: "annual", note: "Coworking memberships worldwide" },
+    { id: "larkspur", vendor: "Larkspur Resorts", category: "Events", owner: "People", value: 420000, recurring: false, renewsIn: 175, autoRenew: false, notice: 0, cap: null, data: "personal", dpa: true, ai: "none", term: "event", note: "Company off-site venue",
+      milestone: { inDays: 44, label: "Fee step", text: "Cancellation fee rises from 25% to 50% of the contract value" } },
+    { id: "devbench", vendor: "Devbench", category: "Developer tooling", owner: "Engineering", value: 96000, recurring: true, renewsIn: 330, autoRenew: true, notice: 30, cap: 5, data: "internal", dpa: true, ai: "notrain", term: "annual", note: "CI/CD minutes and runners" },
+    { id: "notewise", vendor: "Notewise AI", category: "Collaboration", owner: "Revenue Ops", value: 18000, recurring: true, renewsIn: 35, autoRenew: true, notice: 30, cap: null, data: "personal", dpa: false, ai: "trains", term: "annual", note: "AI meeting notes, bought on a company card" },
+  ];
+
+  const DATA_LABEL = { none: "No company data", internal: "Internal business data", personal: "Personal data", customer: "Customer data" };
+  const AI_LABEL = { none: "No AI features", notrain: "AI features, no training on our data", trains: "May train on our data" };
+  const STATUS = {
+    closed: { label: "Locked in", cls: "st-closed" },
+    act: { label: "Act now", cls: "st-act" },
+    prep: { label: "Prepare", cls: "st-prep" },
+    watch: { label: "On watch", cls: "st-watch" },
+  };
+  const ORDER = ["act", "closed", "prep", "watch"];
+
+  // ---------- derived fields
+  const recurring = CONTRACTS.filter(c => c.recurring);
+  const recurringTotal = recurring.reduce((s, c) => s + c.value, 0);
+  const byCategory = {};
+  recurring.forEach(c => { (byCategory[c.category] = byCategory[c.category] || []).push(c); });
+
+  CONTRACTS.forEach(c => {
+    c.renewal = addDays(today, c.renewsIn);
+    if (c.milestone) { c.kind = "event"; c.actionIn = c.milestone.inDays; }
+    else if (c.autoRenew) { c.kind = "auto"; c.actionIn = c.renewsIn - c.notice; }
+    else { c.kind = "fixed"; c.actionIn = c.renewsIn - 30; }
+    c.action = addDays(today, c.actionIn);
+    if (c.actionIn < 0) c.status = c.kind === "auto" ? "closed" : "act";
+    else c.status = c.actionIn <= 30 ? "act" : c.actionIn <= 90 ? "prep" : "watch";
+    c.share = c.recurring ? c.value / recurringTotal : 0;
+    c.concentration = c.recurring && c.share >= 0.25;
+    const peers = c.recurring ? byCategory[c.category] : [];
+    c.overlap = peers.length >= 3 ? peers.filter(p => p !== c) : [];
+    c.personal = c.data === "personal" || c.data === "customer";
+    c.flags = [];
+    if (c.recurring && c.cap === null) c.flags.push("No price cap");
+    if (c.notice >= 90) c.flags.push(c.notice + "-day notice");
+    if (c.personal && !c.dpa) c.flags.push("No DPA");
+    if (c.ai === "trains") c.flags.push("AI may train on our data");
+    if (c.concentration) c.flags.push(Math.round(c.share * 100) + "% of spend");
+    if (c.overlap.length) c.flags.push("Overlapping tools");
+  });
+  CONTRACTS.sort((a, b) => a.actionIn - b.actionIn);
+
+  const actionLabel = c => c.kind === "auto" ? "Notice deadline" : c.kind === "fixed" ? "Decide by" : c.milestone.label;
+  const endLabel = c => c.kind === "auto" ? "Renews" : c.kind === "fixed" ? "Expires" : "Event";
+  const daysText = n => n === 0 ? "today" : n === 1 ? "tomorrow" : "in " + n + " days";
+
+  // ---------- KPIs
+  function renderKPIs() {
+    const sum = list => list.reduce((s, c) => s + c.value, 0);
+    const act = CONTRACTS.filter(c => c.actionIn >= 0 && c.actionIn <= 30);
+    const ren = CONTRACTS.filter(c => c.kind !== "event" && c.renewsIn >= 0 && c.renewsIn <= 90);
+    const locked = CONTRACTS.filter(c => c.status === "closed");
+    const uncapped = recurring.filter(c => c.cap === null);
+    const tiles = [
+      { cls: "st-act", label: "Deadlines in 30 days", num: act.length, sub: money(sum(act)) + " of contracts" },
+      { cls: "st-prep", label: "Renewing in 90 days", num: ren.length, sub: money(sum(ren)) + " a year" },
+      { cls: "st-closed", label: "Notice window missed", num: locked.length, sub: money(sum(locked)) + " renews regardless" },
+      { cls: "st-watch", label: "No cap on price increases", num: money(sum(uncapped)), sub: plural(uncapped.length, "contract") + " a year" },
+    ];
+    $("#kpis").innerHTML = tiles.map(t => `
+      <div class="panel kpi ${t.cls}">
+        <span class="label"><i class="dot"></i>${t.label}</span>
+        <span class="num">${t.num}</span>
+        <span class="sub">${t.sub}</span>
+      </div>`).join("");
+  }
+
+  // ---------- timeline
+  const monthTicks = [];
+  (function buildTicks() {
+    const d = new Date(today.getFullYear(), today.getMonth() + 1, 1);
+    let i = 0;
+    while (true) {
+      const off = Math.round((d - today) / 864e5);
+      if (off > HORIZON - 12) break;
+      if (off >= 18) {
+        const label = d.toLocaleDateString("en-GB", { month: "short" });
+        monthTicks.push({ off, label, minor: i % 2 === 1 });
+      }
+      d.setMonth(d.getMonth() + 1);
+      i++;
+    }
+  })();
+
+  function renderAxis() {
+    $("#tl-axis").innerHTML = `<span class="tick today" style="left:0">Today</span>` +
+      monthTicks.map(t => `<span class="tick${t.minor ? " minor" : ""}" style="left:${pct(t.off).toFixed(2)}%">${t.label}</span>`).join("");
+  }
+
+  let filter = "all";
+  let selected = (CONTRACTS.find(c => c.status === "act") || CONTRACTS[0]).id;
+
+  function rowHTML(c) {
+    const st = STATUS[c.status];
+    const parts = monthTicks.map(t => `<span class="g" style="left:${pct(t.off).toFixed(2)}%"></span>`);
+    parts.push(`<span class="today"></span>`);
+    if (c.actionIn >= 0) {
+      const a = Math.max(0, c.actionIn - 45);
+      parts.push(`<span class="seg prep" style="left:${pct(a).toFixed(2)}%;width:${(pct(c.actionIn) - pct(a)).toFixed(2)}%"></span>`);
+    }
+    const from = Math.max(0, c.actionIn);
+    const span = (pct(c.renewsIn) - pct(from)).toFixed(2);
+    parts.push(`<span class="seg ${c.kind === "auto" ? "lock" : "runway"}" style="left:${pct(from).toFixed(2)}%;width:${span}%"></span>`);
+    if (c.actionIn >= 0) parts.push(`<span class="mark action" style="left:${pct(c.actionIn).toFixed(2)}%" title="${esc(actionLabel(c))}: ${fmt(c.action)}"></span>`);
+    parts.push(`<span class="mark end ${c.kind}" style="left:${pct(c.renewsIn).toFixed(2)}%" title="${esc(endLabel(c))}: ${fmt(c.renewal)}"></span>`);
+    const days = c.actionIn >= 0 ? ` · <span class="d">${c.actionIn}d</span>` : "";
+    const label = `${c.vendor}. ${st.label}. ${actionLabel(c)} ${fmt(c.action)}. ${endLabel(c)} ${fmt(c.renewal)}.`;
+    return `<button type="button" class="tl-row tl-grid ${st.cls}" data-id="${c.id}" aria-pressed="${c.id === selected}" aria-label="${esc(label)}">
+      <span class="tl-label"><span class="tl-vendor">${esc(c.vendor)}</span><span class="tl-meta">${esc(c.category)} · ${money(c.value)}${c.recurring ? "/yr" : " one-off"}</span></span>
+      <span class="tl-track" aria-hidden="true">${parts.join("")}</span>
+      <span class="tl-status"><span class="chip">${st.label}${days}</span></span>
+    </button>`;
+  }
+
+  function renderFilters() {
+    const counts = { all: CONTRACTS.length };
+    CONTRACTS.forEach(c => { counts[c.status] = (counts[c.status] || 0) + 1; });
+    const items = [["all", "All"]].concat(ORDER.filter(k => counts[k]).map(k => [k, STATUS[k].label]));
+    $("#filters").innerHTML = items.map(([k, l]) =>
+      `<button type="button" class="filter ${k === "all" ? "" : STATUS[k].cls}" data-filter="${k}" aria-pressed="${k === filter}">${k === "all" ? "" : '<i class="dot"></i>'}${l} <span class="n">${counts[k]}</span></button>`).join("");
+  }
+
+  function renderTimeline() {
+    const rows = CONTRACTS.filter(c => filter === "all" || c.status === filter);
+    $("#timeline").innerHTML = rows.length ? rows.map(rowHTML).join("") : `<p class="empty-note">Nothing in this group.</p>`;
+  }
+
+  // ---------- renewal brief
+  function nextStep(c) {
+    const d = n => fmt(addDays(c.action, n));
+    if (c.kind === "event") return `Confirm the final headcount and room block with the owner before ${fmt(c.action)}. ${c.milestone.text} on that date, so any change of plan is cheapest before it.`;
+    if (c.kind === "fixed") {
+      if (c.status === "watch") return `No action yet. It does not auto-renew; the decision to renew, replace or let it lapse is due by ${fmt(c.action)}.`;
+      return `It does not auto-renew. Decide with the owner by ${fmt(c.action)} whether to renew, replace or let it lapse. Service stops on ${fmt(c.renewal)}, so start the renewal negotiation now if the tool stays.`;
+    }
+    if (c.status === "closed") return `The notice deadline passed on ${fmt(c.action)}, so this renews on ${fmt(c.renewal)}. Ask anyway: vendors often agree to a price hold or a shorter renewal term to keep goodwill. Diary the next notice date now.`;
+    if (c.status === "act") {
+      const confirm = addDays(c.action, -7) > today ? "by " + d(-7) : "this week";
+      return `Send notice of non-renewal or open the renegotiation in writing by ${fmt(c.action)}. After that date the renewal is locked in. Ask the owner to confirm usage and need ${confirm}.`;
+    }
+    if (c.status === "prep") return `Open the renegotiation by ${d(-30)}: pull usage data, check alternatives and agree a target price with the owner and FinOps. Notice deadline: ${fmt(c.action)}.`;
+    return `No action yet. A reminder goes to the owner and FinOps on ${d(-90)}, 90 days before the notice deadline.`;
+  }
+
+  function asks(c) {
+    const out = [];
+    if (c.recurring && c.cap === null) out.push(["PB-8", "Cap renewal increases at 5% or less, with 60 days' written notice."]);
+    if (c.notice >= 90) out.push(["PB-7", `Cut the notice period from ${c.notice} days to 60 or less.`]);
+    if (c.kind === "auto" && c.term === "multi") out.push(["PB-7", "Limit automatic renewal terms to 12 months."]);
+    if (c.personal && !c.dpa) out.push(["PB-4", "Sign a DPA before renewal and check sub-processors and transfer terms (PB-5)."]);
+    if (c.ai === "trains") out.push(["PB-2", "Switch off training on our data and confirm it in the order form."]);
+    if (c.concentration) out.push(["PB-9", "This level of concentration is normal for core infrastructure. Protect it with committed-use discounts, data portability and exit assistance."]);
+    if (c.overlap.length) out.push([null, `Overlaps with ${c.overlap.map(o => o.vendor).join(" and ")} (${c.category.toLowerCase()}). Use this renewal to consolidate or bundle.`]);
+    if (c.kind === "event") out.push([null, "Ask for a free date change and a lower attrition charge in exchange for an early headcount confirmation."]);
+    if (!out.length) out.push(["PB-8", "Benchmark the price against actual usage and offer a 12-month commitment for a price hold."]);
+    return out;
+  }
+
+  function factsFor(c) {
+    return [
+      ["Value", c.recurring ? `${money(c.value)} a year · ${(c.share * 100).toFixed(1)}% of recurring spend` : `${money(c.value)} one-off`],
+      [endLabel(c), fmt(c.renewal) + (c.kind === "auto" ? `, auto-renews` : "")],
+      [actionLabel(c), fmt(c.action) + (c.kind === "auto" ? ` (${c.notice}-day notice)` : "")],
+      ["Price cap", c.recurring ? (c.cap === null ? "None" : `${c.cap}% at renewal`) : "Not applicable"],
+      ["Data", DATA_LABEL[c.data] + (c.personal ? (c.dpa ? ", DPA signed" : ", no DPA on file") : "")],
+      ["AI", AI_LABEL[c.ai]],
+    ];
+  }
+
+  function renderBrief() {
+    const c = CONTRACTS.find(x => x.id === selected);
+    const st = STATUS[c.status];
+    const due = c.actionIn >= 0 ? `${actionLabel(c)} ${daysText(c.actionIn)}` : `Notice deadline passed ${-c.actionIn} days ago`;
+    $("#brief").className = "panel brief " + st.cls;
+    $("#brief").innerHTML = `
+      <div>
+        <p class="eyebrow">Renewal brief</p>
+        <h3>${esc(c.vendor)}</h3>
+        <p class="sub">${esc(c.note)} · ${esc(c.category)} · owner: ${esc(c.owner)}</p>
+      </div>
+      <span class="chip" style="width:fit-content"><i class="dot"></i>${st.label} · ${due}</span>
+      <dl class="facts">${factsFor(c).map(([k, v]) => `<dt>${esc(k)}</dt><dd>${esc(v)}</dd>`).join("")}</dl>
+      <h4>Next step</h4>
+      <p style="font-size:14px">${esc(nextStep(c))}</p>
+      <h4>Asks for the vendor</h4>
+      <ul class="asks">${asks(c).map(([id, t]) => `<li>${id ? pbLink(id) : '<span class="pbref none">deal</span>'}<span>${esc(t)}</span></li>`).join("")}</ul>
+      <div class="row-actions"><button type="button" class="btn" id="copy-brief">Copy brief</button><span class="copy-note" id="copy-brief-note"></span></div>`;
+  }
+
+  function briefText(c) {
+    const st = STATUS[c.status];
+    const lines = [
+      `Renewal brief: ${c.vendor} (${c.category}, owner ${c.owner})`,
+      `Status: ${st.label}. ${actionLabel(c)}: ${fmt(c.action)}.`,
+      ...factsFor(c).map(([k, v]) => `${k}: ${v}`),
+      `Next step: ${nextStep(c)}`,
+      "Asks:",
+      ...asks(c).map(([id, t]) => `- ${id ? "[" + id + "] " : ""}${t}`),
+    ];
+    return lines.join("\n");
+  }
+
+  // ---------- concentration
+  function renderConcentration() {
+    const sorted = recurring.slice().sort((a, b) => b.value - a.value);
+    const top = sorted.slice(0, 5);
+    const rest = sorted.slice(5);
+    const restSum = rest.reduce((s, c) => s + c.value, 0);
+    const bar = (name, value, share, flagged) => `
+      <div class="bar-row"><span class="name">${esc(name)}</span>
+        <span class="bar${flagged ? " flagged" : ""}" role="img" aria-label="${esc(name)}: ${Math.round(share * 100)}% of recurring spend"><span style="width:${(share * 100).toFixed(1)}%"></span></span>
+        <span class="bar-val">${money(value)} · ${Math.round(share * 100)}%</span></div>`;
+    $("#bars").innerHTML = top.map(c => bar(c.vendor, c.value, c.share, c.concentration)).join("") +
+      bar(`${rest.length} others`, restSum, restSum / recurringTotal, false);
+    $("#conc-total").textContent = `${money(recurringTotal)} recurring · ${recurring.length} contracts`;
+
+    const notes = [];
+    recurring.filter(c => c.concentration).forEach(c => notes.push([`PB-9`,
+      `${c.vendor} holds ${Math.round(c.share * 100)}% of recurring spend. That is expected for core infrastructure, so the protection is contractual: committed-use discounts, data portability and exit assistance, reviewed before the ${fmt(c.action)} notice deadline.`]));
+    Object.entries(byCategory).filter(([, list]) => list.length >= 3).forEach(([cat, list]) => {
+      const first = list.slice().sort((a, b) => a.actionIn - b.actionIn).find(c => c.actionIn >= 0) || list[0];
+      const total = list.reduce((s, c) => s + c.value, 0);
+      notes.push([null, `${cat}: ${list.length} tools, ${money(total)} a year (${list.map(c => c.vendor).join(", ")}). ${first.vendor}'s deadline comes first, on ${fmt(first.action)}, which makes it the natural point to consolidate.`]);
+    });
+    const uncapped = recurring.filter(c => c.cap === null);
+    if (uncapped.length) notes.push(["PB-8", `${plural(uncapped.length, "contract")} worth ${money(uncapped.reduce((s, c) => s + c.value, 0))} a year can raise prices without a cap. Each renewal brief asks for one.`]);
+    $("#conc-notes").innerHTML = notes.map(([id, t]) => `<div class="note">${id ? pbLink(id) : '<span class="pbref none">deal</span>'}<span>${esc(t)}</span></div>`).join("");
+  }
+
+  // ---------- intake triage
+  const PRESETS = {
+    notes: { name: "AI meeting-notes assistant for Sales", category: "ai", value: "10-50", paper: "vendor", data: "personal", ai: "notrain", sso: true, api: false, prod: false, term: "annual", auto: true, unusual: [] },
+    plugin: { name: "Diagramming plugin for the design team", category: "saas", value: "lt10", paper: "click", data: "internal", ai: "none", sso: false, api: false, prod: false, term: "monthly", auto: true, unusual: [] },
+    analytics: { name: "Product analytics add-on", category: "saas", value: "10-50", paper: "vendor", data: "internal", ai: "none", sso: true, api: true, prod: false, term: "annual", auto: true, unusual: [] },
+    llm: { name: "LLM API to summarise support tickets", category: "ai", value: "50-250", paper: "vendor", data: "customer", ai: "trains", sso: false, api: true, prod: true, term: "annual", auto: false, unusual: [] },
+  };
+  const UNUSUAL = {
+    exclusive: "Exclusivity or most-favoured terms are outside the playbook.",
+    indemnity: "An uncapped indemnity from us is outside approved positions.",
+    law: "The governing law or forum is not on the approved list.",
+    sanctions: "Sanctions exposure: screening and a compliance decision come before any signature.",
+  };
+  const LANES = {
+    self: { name: "Self-serve", sla: "Same day", note: "The budget owner buys it after the click-through checklist; FinOps approves the spend. No contract review needed." },
+    standard: { name: "Standard review", sla: "Target: 2 business days", note: "Contracts reviews the terms against the playbook and signs off within approved positions." },
+    negotiated: { name: "Negotiated review", sla: "Target: 5–10 business days", note: "Contracts negotiates with the vendor and its counsel; Security and Privacy review their parts in parallel." },
+    escalate: { name: "Escalate", sla: "Plan agreed within 2 business days", note: "Outside approved positions or a new legal risk. Contracts brings the AGC, Commercial in with options and a recommendation." },
+  };
+  const VALUE_LABEL = { lt10: "under $10k", "10-50": "$10k–50k", "50-250": "$50k–250k", gt250: "over $250k" };
+  const CAT_LABEL = { saas: "SaaS tool", ai: "AI tool or model API", cloud: "Cloud or infrastructure", services: "Professional services", hardware: "Hardware", events: "Events or travel", other: "Other" };
+  const PAPER_LABEL = { click: "vendor click-through", vendor: "vendor contract, negotiable", ours: "our template" };
+  const TERM_LABEL = { monthly: "monthly", annual: "12 months", multi: "multi-year" };
+
+  function readForm() {
+    const radio = n => ($(`input[name="${n}"]:checked`) || {}).value;
+    return {
+      name: $("#f-name").value.trim() || "Unnamed request",
+      category: $("#f-category").value, value: $("#f-value").value,
+      paper: radio("paper"), data: radio("data"), ai: radio("ai"),
+      sso: $("#f-sso").checked, api: $("#f-api").checked, prod: $("#f-prod").checked,
+      term: $("#f-term").value, auto: $("#f-auto").checked,
+      unusual: $$("[data-unusual]").filter(i => i.checked).map(i => i.dataset.unusual),
+    };
+  }
+
+  function writeForm(p) {
+    $("#f-name").value = p.name; $("#f-category").value = p.category; $("#f-value").value = p.value;
+    $(`#f-paper-${p.paper}`).checked = true; $(`#f-data-${p.data}`).checked = true; $(`#f-ai-${p.ai}`).checked = true;
+    $("#f-sso").checked = p.sso; $("#f-api").checked = p.api; $("#f-prod").checked = p.prod;
+    $("#f-term").value = p.term; $("#f-auto").checked = p.auto;
+    $$("[data-unusual]").forEach(i => { i.checked = p.unusual.includes(i.dataset.unusual); });
+  }
+
+  function triage(f) {
+    const dataLv = { none: 0, internal: 1, personal: 2, customer: 3 }[f.data];
+    const aiLv = { none: 0, notrain: 1, trains: 2 }[f.ai];
+    const valLv = { lt10: 0, "10-50": 1, "50-250": 2, gt250: 3 }[f.value];
+    const escalators = [];
+    if (aiLv === 2 && dataLv >= 2) escalators.push(`The vendor may train AI models on ${dataLv === 3 ? "customer" : "personal"} data.`);
+    if (f.prod && f.paper === "click") escalators.push("Production access on click-through terms we cannot negotiate.");
+    f.unusual.forEach(u => escalators.push(UNUSUAL[u]));
+
+    let lane;
+    if (escalators.length) lane = "escalate";
+    else if (valLv === 0 && dataLv <= 1 && aiLv <= 1 && !f.api && !f.prod && f.term !== "multi") lane = "self";
+    else if (valLv >= 2 || dataLv >= 2 || f.prod || aiLv === 2 || f.term === "multi") lane = "negotiated";
+    else lane = "standard";
+
+    const why = [];
+    if (lane === "escalate") why.push(...escalators);
+    if (lane === "self") {
+      why.push("Under $10k a year.");
+      why.push(dataLv === 0 ? "No company data involved." : "Internal business data only, no personal or customer data.");
+      why.push("No integration with our systems.");
+      if (aiLv === 1) why.push("AI features are on, but the terms rule out training on our data.");
+    }
+    if (lane === "negotiated" || lane === "standard") {
+      if (valLv >= 2) why.push(`Annual value ${VALUE_LABEL[f.value]}.`);
+      if (dataLv === 3) why.push("Customer data in scope, so DPA, transfer and security terms need negotiating.");
+      if (dataLv === 2) why.push("Personal data in scope, so a DPA and a transfer check are required.");
+      if (f.prod) why.push("Production access.");
+      if (aiLv === 2) why.push("The vendor may train AI models on our business data.");
+      if (f.term === "multi") why.push("Multi-year commitment.");
+      if (lane === "standard") {
+        why.push(`Annual value ${VALUE_LABEL[f.value]}${dataLv <= 1 ? ", no personal or customer data" : ""}.`);
+        if (f.api) why.push("Integrates with our systems, so Security reviews the access.");
+        if (f.paper === "ours") why.push("On our template, so review is mostly about deviations.");
+      }
+    }
+
+    const reviewers = [["FinOps", "Budget, purchase order and renewal date"]];
+    reviewers.push(lane === "self" ? ["Budget owner", "Click-through checklist"] : ["Contracts", "Terms against the playbook; negotiates with the vendor"]);
+    if (f.api || f.prod || dataLv >= 2) reviewers.push(["Security", "Security exhibit, SOC 2 report, access scope"]);
+    if (dataLv >= 2) reviewers.push(["Privacy", "DPA, sub-processors, transfers"]);
+    if (f.sso || f.api) reviewers.push(["IT", "Single sign-on and provisioning"]);
+    if (f.unusual.includes("sanctions")) reviewers.push(["Compliance", "Sanctions screening"]);
+    if (lane === "escalate") reviewers.push(["AGC, Commercial", "Decision on positions outside the playbook"]);
+
+    const checks = new Set();
+    if (lane !== "self") { checks.add("PB-1"); checks.add("PB-9"); }
+    if (aiLv >= 1) { checks.add("PB-2"); checks.add("PB-3"); }
+    if (dataLv >= 2) { checks.add("PB-4"); checks.add("PB-5"); checks.add("PB-6"); }
+    if (f.api || f.prod) checks.add("PB-6");
+    if (f.auto || f.term !== "monthly") checks.add("PB-7");
+    if (f.term !== "monthly" && lane !== "self") checks.add("PB-8");
+    if (["saas", "ai", "cloud"].includes(f.category) && lane !== "self") checks.add("PB-10");
+    if (lane === "self") { checks.add("PB-7"); checks.add("PB-9"); }
+    const ordered = PLAYBOOK.map(p => p.id).filter(id => checks.has(id));
+    return { lane, why, reviewers, checks: ordered };
+  }
+
+  function intakeSummary(f, t) {
+    const access = [f.sso && "SSO", f.api && "API", f.prod && "production"].filter(Boolean).join(", ") || "none";
+    return [
+      `VENDOR REQUEST: ${f.name}`,
+      `Category: ${CAT_LABEL[f.category]} · Value: ${VALUE_LABEL[f.value]} a year · Term: ${TERM_LABEL[f.term]}${f.auto ? ", auto-renews" : ""}`,
+      `Terms: ${PAPER_LABEL[f.paper]} · Data: ${DATA_LABEL[f.data].toLowerCase()} · AI: ${AI_LABEL[f.ai].toLowerCase()} · Access: ${access}`,
+      `Lane: ${LANES[t.lane].name} (${LANES[t.lane].sla.replace("Target: ", "target ")})`,
+      `Reviewers: ${t.reviewers.map(r => r[0]).join(", ")}`,
+      `Playbook checks: ${t.checks.join(", ")}`,
+      `Why: ${t.why.join(" ")}`,
+    ].join("\n");
+  }
+
+  function renderTriage() {
+    const f = readForm();
+    const t = triage(f);
+    const L = LANES[t.lane];
+    const laneKeys = ["self", "standard", "negotiated", "escalate"];
+    $("#result").className = "panel result lane-" + t.lane;
+    $("#result").innerHTML = `
+      <p class="eyebrow">Triage result</p>
+      <div class="ladder" aria-hidden="true">${laneKeys.map(k => `<span class="lane-${k}${k === t.lane ? " on" : ""}">${LANES[k].name}</span>`).join("")}</div>
+      <div class="lane"><span class="lane-name">${L.name}</span><span class="lane-sla">${L.sla}</span><p class="lane-note">${L.note}</p></div>
+      <h4>Why</h4>
+      <ul class="bul">${t.why.map(w => `<li>${esc(w)}</li>`).join("")}</ul>
+      <h4>Who reviews what</h4>
+      <ul class="reviewers">${t.reviewers.map(([who, what]) => `<li><b>${esc(who)}</b><span>${esc(what)}</span></li>`).join("")}</ul>
+      <h4>${t.lane === "self" ? "Checklist items" : "Playbook checks"}</h4>
+      <div class="checks">${t.checks.map(id => `<a href="#${pbAnchor(id)}"><span class="pbref">${id}</span>${esc(PB[id].name)}</a>`).join("")}</div>
+      <h4>Intake summary for the CLM ticket</h4>
+      <pre id="intake-summary">${esc(intakeSummary(f, t))}</pre>
+      <div class="row-actions"><button type="button" class="btn" id="copy-intake" data-target="intake-summary">Copy summary</button><span class="copy-note" id="copy-intake-note"></span></div>`;
+  }
+
+  function setPreset(key) {
+    writeForm(PRESETS[key]);
+    $$(".preset").forEach(b => b.setAttribute("aria-pressed", String(b.dataset.preset === key)));
+    renderTriage();
+  }
+
+  // ---------- playbook + skill file
+  const TAG_LABEL = { commercial: "Commercial", data: "Data and privacy", ai: "AI" };
+  let pbFilter = "all";
+
+  function renderPlaybook() {
+    const keys = ["all", "commercial", "data", "ai"];
+    $("#pb-filters").innerHTML = keys.map(k => `<button type="button" class="filter" data-pbfilter="${k}" aria-pressed="${k === pbFilter}">${k === "all" ? "All" : TAG_LABEL[k]}</button>`).join("");
+    $("#pb-list").innerHTML = PLAYBOOK.filter(p => pbFilter === "all" || p.tags.includes(pbFilter)).map(p => `
+      <article class="panel pb" id="${pbAnchor(p.id)}">
+        <div class="pb-head"><span class="pb-id">${p.id}</span><h3>${esc(p.name)}</h3><span class="tags">${p.tags.map(t => `<span class="tag">${TAG_LABEL[t]}</span>`).join("")}</span></div>
+        <div class="pb-cols">
+          <div class="pb-col pref"><b>Preferred</b><p>${esc(p.pref)}</p></div>
+          <div class="pb-col fall"><b>Fallback</b><p>${esc(p.fall)}</p></div>
+          <div class="pb-col esc"><b>Escalate when</b><p>${esc(p.esc)}</p></div>
+        </div>
+      </article>`).join("");
+  }
+
+  function skillText() {
+    const head = [
+      "---",
+      "name: vendor-playbook",
+      "description: Apply the vendor contracting playbook to a vendor agreement, order form, DPA or click-through terms. Use for first-pass reviews, redlines and escalation notes on anything the company buys.",
+      "---",
+      "",
+      "# Vendor contracting playbook",
+      "",
+      "Review the vendor's document clause by clause. For each clause, say whether it meets the preferred position, meets the fallback, or needs escalation.",
+      "",
+      "## Guardrails",
+      "- Work only in the approved workspace. Never paste vendor contracts or personal data into other tools.",
+      "- Quote the vendor's clause exactly and give its section number, so a reviewer can check it against the source.",
+      "- You draft; the Contracts Manager decides. If something is not covered below, flag it instead of inventing a position.",
+      "",
+      "## Output",
+      "1. Triage line: lane, reviewers, target turnaround.",
+      "2. Table: clause | vendor position (quoted, with section) | playbook position | action (accept / counter with fallback / escalate).",
+      "3. Proposed redlines for every counter, written into the vendor's document.",
+      "4. Summary for the budget owner in five plain-language lines or fewer.",
+      "5. Escalation note for the AGC, Commercial, if any clause needs escalation.",
+      "",
+      "## Positions",
+    ];
+    const body = PLAYBOOK.flatMap(p => ["", `### ${p.id} ${p.name}`, `- Preferred: ${p.pref}`, `- Fallback: ${p.fall}`, `- Escalate when: ${p.esc}`]);
+    return head.concat(body).join("\n");
+  }
+
+  // ---------- copy helper
+  async function copyFrom(text, noteId, preId) {
+    const note = $("#" + noteId);
+    try {
+      await navigator.clipboard.writeText(text);
+      note.textContent = "Copied";
+    } catch (e) {
+      const pre = preId && $("#" + preId);
+      if (pre) {
+        const range = document.createRange(); range.selectNodeContents(pre);
+        const sel = window.getSelection(); sel.removeAllRanges(); sel.addRange(range);
+        note.textContent = "Selected. Press Ctrl+C or ⌘C to copy.";
+      } else {
+        note.textContent = "Copying is blocked here.";
+      }
+    }
+    setTimeout(() => { note.textContent = ""; }, 2600);
+  }
+
+  // ---------- routing
+  const VIEWS = ["horizon", "intake", "playbook", "how"];
+  function show(view) {
+    VIEWS.forEach(v => {
+      $("#view-" + v).hidden = v !== view;
+      const tab = $("#tab-" + v);
+      tab.setAttribute("aria-selected", String(v === view));
+      tab.tabIndex = v === view ? 0 : -1;
+    });
+  }
+  function route() {
+    const h = decodeURIComponent(location.hash.slice(1));
+    if (/^pb-\d+$/.test(h)) {
+      if (pbFilter !== "all") { pbFilter = "all"; renderPlaybook(); }
+      show("playbook");
+      const el = document.getElementById(h);
+      if (el) {
+        el.scrollIntoView({ block: "start", behavior: "smooth" });
+        el.classList.add("flash");
+        setTimeout(() => el.classList.remove("flash"), 1600);
+      }
+      return;
+    }
+    show(VIEWS.includes(h) ? h : "horizon");
+  }
+
+  // ---------- wire up
+  $("#today-label").textContent = fmt(today);
+  renderKPIs(); renderAxis(); renderFilters(); renderTimeline(); renderBrief(); renderConcentration();
+  renderPlaybook();
+  $("#skill-md").textContent = skillText();
+  setPreset("notes");
+  route();
+
+  window.addEventListener("hashchange", route);
+  $(".tabs").addEventListener("click", e => {
+    const b = e.target.closest(".tab"); if (!b) return;
+    if (location.hash.slice(1) === b.dataset.view) show(b.dataset.view); else location.hash = b.dataset.view;
+  });
+  $(".tabs").addEventListener("keydown", e => {
+    if (e.key !== "ArrowRight" && e.key !== "ArrowLeft") return;
+    const tabs = $$(".tab"); const i = tabs.indexOf(document.activeElement); if (i < 0) return;
+    const next = tabs[(i + (e.key === "ArrowRight" ? 1 : tabs.length - 1)) % tabs.length];
+    next.focus(); next.click();
+  });
+  $("#filters").addEventListener("click", e => {
+    const b = e.target.closest("[data-filter]"); if (!b) return;
+    filter = b.dataset.filter; renderFilters(); renderTimeline();
+  });
+  $("#timeline").addEventListener("click", e => {
+    const r = e.target.closest(".tl-row"); if (!r) return;
+    selected = r.dataset.id;
+    $$(".tl-row").forEach(x => x.setAttribute("aria-pressed", String(x.dataset.id === selected)));
+    renderBrief();
+    if (window.matchMedia("(max-width: 980px)").matches) $("#brief").scrollIntoView({ block: "start", behavior: "smooth" });
+  });
+  $("#brief").addEventListener("click", e => {
+    if (!e.target.closest("#copy-brief")) return;
+    copyFrom(briefText(CONTRACTS.find(x => x.id === selected)), "copy-brief-note", null);
+  });
+  $("#intake").addEventListener("input", () => { $$(".preset").forEach(b => b.setAttribute("aria-pressed", "false")); renderTriage(); });
+  $("#intake").addEventListener("change", renderTriage);
+  $("#intake").addEventListener("submit", e => e.preventDefault());
+  $(".presets").addEventListener("click", e => { const b = e.target.closest(".preset"); if (b) setPreset(b.dataset.preset); });
+  $("#result").addEventListener("click", e => {
+    if (!e.target.closest("#copy-intake")) return;
+    copyFrom($("#intake-summary").textContent, "copy-intake-note", "intake-summary");
+  });
+  $("#pb-filters").addEventListener("click", e => {
+    const b = e.target.closest("[data-pbfilter]"); if (!b) return;
+    pbFilter = b.dataset.pbfilter; renderPlaybook();
+  });
+  $("#copy-skill").addEventListener("click", () => copyFrom($("#skill-md").textContent, "copy-skill-note", "skill-md"));
+})();
+</script>
+</body>
+</html>
